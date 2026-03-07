@@ -186,26 +186,7 @@ async def _build_card(item: MonitorItem) -> dict:
                     "is_short": True,
                     "text": {
                         "tag": "lark_md",
-                        "content": f"**作者**\n{item.author}",
-                    },
-                },
-            ],
-        },
-        {
-            "tag": "div",
-            "fields": [
-                {
-                    "is_short": True,
-                    "text": {
-                        "tag": "lark_md",
                         "content": f"**推荐分**\n{item.score}",
-                    },
-                },
-                {
-                    "is_short": True,
-                    "text": {
-                        "tag": "lark_md",
-                        "content": f"**互动数**\n{item.engagement_count}",
                     },
                 },
             ],
@@ -224,7 +205,7 @@ async def _build_card(item: MonitorItem) -> dict:
             "tag": "div",
             "text": {
                 "tag": "plain_text",
-                "content": f"原文：{item.content[:150]}..." if len(item.content) > 150 else f"原文：{item.content}",
+                "content": f"原文：{item.content[:120]}..." if len(item.content) > 120 else f"原文：{item.content}",
             },
         },
     ]
