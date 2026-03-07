@@ -97,8 +97,9 @@ async def _score_batch(
     items: List[RawItem],
     requirements: str,
 ) -> List[tuple[RawItem, int]]:
+    """批量评分 - 方案B：标题+前100字，更快更省token"""
     items_text = "\n\n".join(
-        f"[{idx}] 来源:{item.platform.value} 标题/内容:{item.content[:200]}"
+        f"[{idx}] 标题:{item.content.split('.')[0][:80] if '.' in item.content else item.content[:80]} | 内容:{item.content[:100]}"
         for idx, item in enumerate(items)
     )
 
@@ -107,17 +108,16 @@ async def _score_batch(
 用户需求：
 {requirements}
 
-待评分内容：
+待评分内容（标题+前100字）：
 {items_text}
 
 评分标准：
-- 90-100：高度相关，直接涉及用户关注的核心内容
-- 60-89：相关，有参考价值
-- 30-59：弱相关，勉强值得关注
-- 0-29：不相关，可忽略
+- 90-100：高度相关，直接涉及AI社交/分身/A2A网络等核心内容
+- 70-89：相关，涉及AI Agent在社交场景的尝试
+- 50-69：弱相关，涉及AI技术但社交属性不强  
+- 0-49：不相关
 
-返回 JSON 格式：{{"scores": [分数0, 分数1, ...]}}
-scores 数组长度必须和内容条数一致，只返回 JSON。"""
+返回 JSON：{{"scores": [分数0, 分数1, ...]}}"""
 
     try:
         resp = await client.chat.completions.create(
