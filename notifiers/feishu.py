@@ -119,9 +119,47 @@ def _make_sign(secret: str, timestamp: int) -> str:
 
 async def _build_card(item: MonitorItem) -> dict:
     """将单条监控内容构建为飞书交互式卡片（包含 AI 总结）"""
-    platform_label = {"twitter": "Twitter / X", "reddit": "Reddit", "github": "GitHub", "hackernews": "HackerNews"}.get(
-        item.platform.value, item.platform.value
-    )
+    
+    # 平台映射和细化
+    platform_mapping = {
+        "twitter": "Twitter/X",
+        "reddit": "Reddit", 
+        "github": "GitHub",
+        "hackernews": "HackerNews",
+        "rss": "RSS"
+    }
+    platform_label = platform_mapping.get(item.platform.value, item.platform.value)
+    
+    # 从 URL 提取更详细的平台信息（特别是 RSS）
+    platform_detail = ""
+    if item.url:
+        if "techcrunch.com" in item.url:
+            platform_detail = "TechCrunch"
+        elif "wired.com" in item.url:
+            platform_detail = "Wired"
+        elif "theverge.com" in item.url:
+            platform_detail = "The Verge"
+        elif "arstechnica.com" in item.url:
+            platform_detail = "Ars Technica"
+        elif "technologyreview.com" in item.url:
+            platform_detail = "MIT Tech Review"
+        elif "venturebeat.com" in item.url:
+            platform_detail = "VentureBeat"
+        elif "producthunt.com" in item.url:
+            platform_detail = "Product Hunt"
+        elif "dev.to" in item.url:
+            platform_detail = "Dev.to"
+        elif "github.com/trending" in item.url:
+            platform_detail = "GitHub Trending"
+        elif "news.ycombinator.com" in item.url:
+            platform_detail = "HackerNews"
+    
+    # 组合平台显示
+    if platform_detail and platform_detail != platform_label:
+        platform_display = f"{platform_label} · {platform_detail}"
+    else:
+        platform_display = platform_label
+    
     # 标题颜色：直接提及用红色，高分用橙色，普通用蓝色
     if item.is_direct_mention:
         color = "red"
@@ -131,7 +169,7 @@ async def _build_card(item: MonitorItem) -> dict:
         color = "blue"
 
     # 生成 AI 标题和总结
-    title, summary = await _generate_summary_and_title(item.content, platform_label)
+    title, summary = await _generate_summary_and_title(item.content, platform_display)
 
     elements = [
         {
@@ -141,7 +179,7 @@ async def _build_card(item: MonitorItem) -> dict:
                     "is_short": True,
                     "text": {
                         "tag": "lark_md",
-                        "content": f"**平台**\n{platform_label}",
+                        "content": f"**来源**\n{platform_display}",
                     },
                 },
                 {
@@ -160,7 +198,7 @@ async def _build_card(item: MonitorItem) -> dict:
                     "is_short": True,
                     "text": {
                         "tag": "lark_md",
-                        "content": f"**推荐分**\n{item.score} / 100",
+                        "content": f"**推荐分**\n{item.score}",
                     },
                 },
                 {
