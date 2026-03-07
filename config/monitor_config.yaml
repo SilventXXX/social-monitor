@@ -1,28 +1,49 @@
 # 外网信息监控系统 - 监控配置
+# 混合方案：AI 智能评分 + 关键词预过滤
 
 monitor:
-  # 用自然语言描述你的监控需求（AI 会据此对内容打相关性分）
-  # 写得越具体，过滤效果越好
+  # 【AI 智能评分】用自然语言描述你的监控需求
+  # AI 会据此对内容打相关性分，写得越具体，过滤效果越好
   requirements: "我做AI社交产品，关注AI帮助真人连接的社交产品动态，主要是三类 1. AI社交助理、分身类产品，比如pika AI Self、secondme这种 2. A2A的社交网络，比如Elys等 3. 通用AI Agent在社交上的尝试，比如openclaw及moltbook之类的进展"
 
-  # 关键词过滤（可选，留空则采集全部内容交给 AI 评分）
-  # 建议填写，可大幅减少 AI API 调用量
-  keywords: []
-  #  - "AI agent"
-  #  - "LLM"
-  #  - "RAG"
+  # 【关键词预过滤】建议填写，可大幅减少 AI API 调用量
+  # 只有包含这些关键词的内容才会进入 AI 评分流程
+  keywords:
+    - "AI分身"
+    - "digital twin"
+    - "Pika AI"
+    - "AI Self"
+    - "AI avatar"
+    - "数字孪生"
+    - "AI clone"
+    - "Elys AI"
+    - "AI陪伴"
+    - "Character.AI"
+    - "AI agent"
+    - "LLM"
+    - "RAG"
 
-  # 要监控的用户名（在各平台搜索提及）
-  usernames: []
+  # 要监控的用户名/品牌（在各平台搜索提及）
+  usernames:
+    - "pika_labs"
+    - "demi_guo_"
+    - "borndotcom"
 
-  # Hashtag（仅 Twitter）
-  hashtags: []
+  # Hashtag（仅 X/Twitter）
+  hashtags:
+    - "AISelf"
+    - "DigitalTwin"
+    - "AIAvatar"
+    - "AI"
 
   # Reddit 要监控的 subreddit
   subreddits:
-    - "MachineLearning"
     - "artificial"
+    - "MachineLearning"
+    - "singularity"
     - "LocalLLaMA"
+    - "OpenAI"
+    - "ChatGPT"
 
   # AI 评分达到多少才推送飞书通知（0-100，建议 60）
   min_score_to_notify: 60

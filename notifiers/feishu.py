@@ -13,19 +13,98 @@ import hashlib
 import hmac
 import logging
 import time
-from typing import List
+from typing import List, Optional
 
 import httpx
+from openai import AsyncOpenAI
 
 from config.settings import settings
-from config.loader import get_min_score_to_notify
+from config.loader import get_min_score_to_notify, get_requirements
 from models.item import MonitorItem
 from .base import BaseNotifier
 
 logger = logging.getLogger(__name__)
 
+# AI 客户端缓存
+_ai_client: Optional[AsyncOpenAI] = None
+
+
+def _get_ai_client() -> Optional[AsyncOpenAI]:
+    """获取 AI 客户端"""
+    global _ai_client
+    if _ai_client is not None:
+        return _ai_client
+    if not settings.kimi_api_key:
+        return None
+    _ai_client = AsyncOpenAI(
+        api_key=settings.kimi_api_key,
+        base_url="https://api.moonshot.ai/v1",
+    )
+    return _ai_client
+
 # 单次通知最多发送条数，避免刷屏
 _MAX_ITEMS_PER_NOTIFY = 10
+
+
+async def _generate_summary_and_title(content: str, platform: str) -> tuple[str, str]:
+    """使用 AI 生成一句话标题和总结
+    
+    Returns:
+        (title, summary) - 标题(50字内)和完整总结(200字内)
+    """
+    client = _get_ai_client()
+    if not client:
+        # 无 AI 时返回默认
+        default = content[:150] + "..." if len(content) > 150 else content
+        return default[:50] + "...", default
+    
+    requirements = get_requirements()
+    
+    prompt = f"""你是一个信息筛选助手。请对以下监控内容生成：
+1. 一句话标题（50字以内，概括核心观点，作为消息标题）
+2. 完整总结（200字以内，解释为什么值得看）
+
+用户监控需求：
+{requirements}
+
+内容来源：{platform}
+内容：
+{content[:1000]}
+
+请严格按以下格式返回：
+TITLE: 一句话标题（50字内）
+SUMMARY: 
+💡 核心观点：...
+📌 为什么值得关注：...
+
+只返回上述格式内容，不要其他说明。"""
+
+    try:
+        resp = await client.chat.completions.create(
+            model="moonshot-v1-8k",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=400,
+        )
+        text = resp.choices[0].message.content.strip()
+        
+        # 解析 TITLE 和 SUMMARY
+        title = "新监控内容"
+        summary = text
+        
+        if "TITLE:" in text:
+            parts = text.split("SUMMARY:", 1)
+            title_part = parts[0].replace("TITLE:", "").strip()
+            title = title_part[:50] + "..." if len(title_part) > 50 else title_part
+            if len(parts) > 1:
+                summary = parts[1].strip()
+        
+        return title, summary
+    except Exception as e:
+        logger.exception("AI 总结生成失败: %s", e)
+        # 失败时返回内容前50字作为标题，前150字作为总结
+        default = content[:150] + "..." if len(content) > 150 else content
+        return default[:50], default
 
 
 def _make_sign(secret: str, timestamp: int) -> str:
@@ -38,9 +117,9 @@ def _make_sign(secret: str, timestamp: int) -> str:
     return base64.b64encode(hmac_code).decode("utf-8")
 
 
-def _build_card(item: MonitorItem) -> dict:
-    """将单条监控内容构建为飞书交互式卡片"""
-    platform_label = {"twitter": "Twitter / X", "reddit": "Reddit"}.get(
+async def _build_card(item: MonitorItem) -> dict:
+    """将单条监控内容构建为飞书交互式卡片（包含 AI 总结）"""
+    platform_label = {"twitter": "Twitter / X", "reddit": "Reddit", "github": "GitHub", "hackernews": "HackerNews"}.get(
         item.platform.value, item.platform.value
     )
     # 标题颜色：直接提及用红色，高分用橙色，普通用蓝色
@@ -51,9 +130,8 @@ def _build_card(item: MonitorItem) -> dict:
     else:
         color = "blue"
 
-    content_preview = item.content[:200].replace("\n", " ")
-    if len(item.content) > 200:
-        content_preview += "..."
+    # 生成 AI 标题和总结
+    title, summary = await _generate_summary_and_title(item.content, platform_label)
 
     elements = [
         {
@@ -82,7 +160,7 @@ def _build_card(item: MonitorItem) -> dict:
                     "is_short": True,
                     "text": {
                         "tag": "lark_md",
-                        "content": f"**评分**\n{item.score} / 100",
+                        "content": f"**推荐分**\n{item.score} / 100",
                     },
                 },
                 {
@@ -97,8 +175,18 @@ def _build_card(item: MonitorItem) -> dict:
         {
             "tag": "div",
             "text": {
+                "tag": "lark_md",
+                "content": f"**💡 为什么值得看**\n{summary}",
+            },
+        },
+        {
+            "tag": "hr",
+        },
+        {
+            "tag": "div",
+            "text": {
                 "tag": "plain_text",
-                "content": content_preview,
+                "content": f"原文：{item.content[:150]}..." if len(item.content) > 150 else f"原文：{item.content}",
             },
         },
     ]
@@ -118,12 +206,13 @@ def _build_card(item: MonitorItem) -> dict:
             }
         )
 
-    title = "直接提及" if item.is_direct_mention else "新监控内容"
+    # 标题使用 AI 生成的一句话总结
+    icon = "🔥" if item.is_direct_mention else "📰"
     return {
         "msg_type": "interactive",
         "card": {
             "header": {
-                "title": {"content": f"【{title}】{platform_label}", "tag": "plain_text"},
+                "title": {"content": f"{icon} {title}", "tag": "plain_text"},
                 "template": color,
             },
             "elements": elements,
@@ -168,8 +257,11 @@ class FeishuNotifier(BaseNotifier):
             # 条数过多时发一条汇总文本
             payloads = [_build_summary_text(to_notify)]
         else:
-            # 逐条发卡片
-            payloads = [_build_card(item) for item in to_notify]
+            # 逐条发卡片（异步生成 AI 总结）
+            payloads = []
+            for item in to_notify:
+                card = await _build_card(item)
+                payloads.append(card)
 
         async with httpx.AsyncClient() as client:
             for payload in payloads:
