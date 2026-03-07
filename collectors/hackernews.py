@@ -8,6 +8,7 @@ API 文档：https://github.com/HackerNews/API
 import asyncio
 import json
 import logging
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import httpx
@@ -49,6 +50,11 @@ class HackerNewsCollector(BaseCollector):
         score = data.get("score", 0)
         comments = data.get("descendants", 0)
         url = data.get("url") or f"https://news.ycombinator.com/item?id={item_id}"
+        
+        # 解析发布时间 (Unix timestamp)
+        published_at = None
+        if "time" in data:
+            published_at = datetime.fromtimestamp(data["time"], tz=timezone.utc)
 
         keywords = [k.lower() for k in get_keywords()]
         usernames = [u.lower() for u in get_usernames()]
@@ -77,6 +83,7 @@ class HackerNewsCollector(BaseCollector):
             engagement_count=score + comments,
             is_direct_mention=author_match,
             raw_data=json.dumps({"id": item_id, "score": score, "comments": comments}),
+            published_at=published_at,
         )
 
     async def collect(self) -> List[RawItem]:

@@ -8,6 +8,8 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
+from datetime import datetime, timezone
 from typing import List
 
 import feedparser
@@ -58,8 +60,14 @@ class RSSCollector(BaseCollector):
             link = entry.get("link", "")
             author = entry.get("author", name)
 
+            # 解析发布时间
+            published_at = None
+            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                published_at = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
+            elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+                published_at = datetime(*entry.updated_parsed[:6], tzinfo=timezone.utc)
+
             # 去除 HTML 标签
-            import re
             summary_clean = re.sub(r"<[^>]+>", "", summary).strip()
 
             combined = (title + " " + summary_clean).lower()
@@ -84,6 +92,7 @@ class RSSCollector(BaseCollector):
                     engagement_count=0,
                     is_direct_mention=False,
                     raw_data=json.dumps({"source": name, "title": title}),
+                    published_at=published_at,
                 )
             )
 

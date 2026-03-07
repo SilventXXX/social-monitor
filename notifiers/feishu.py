@@ -120,6 +120,23 @@ def _make_sign(secret: str, timestamp: int) -> str:
 async def _build_card(item: MonitorItem) -> dict:
     """将单条监控内容构建为飞书交互式卡片（包含 AI 总结）"""
     
+    # 格式化发布时间
+    def format_time(dt):
+        if not dt:
+            return "未知"
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        diff = now - dt
+        if diff.days == 0:
+            if diff.seconds < 3600:
+                return f"{diff.seconds // 60}分钟前"
+            return f"{diff.seconds // 3600}小时前"
+        elif diff.days == 1:
+            return "昨天"
+        return f"{diff.days}天前"
+    
+    time_str = format_time(item.published_at)
+    
     # 平台映射和细化
     platform_mapping = {
         "twitter": "Twitter/X",
@@ -180,6 +197,13 @@ async def _build_card(item: MonitorItem) -> dict:
                     "text": {
                         "tag": "lark_md",
                         "content": f"**来源**\n{platform_display}",
+                    },
+                },
+                {
+                    "is_short": True,
+                    "text": {
+                        "tag": "lark_md",
+                        "content": f"**时间**\n{time_str}",
                     },
                 },
                 {

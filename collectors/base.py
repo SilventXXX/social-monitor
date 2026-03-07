@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Optional
 
 from models.item import ItemPlatform
@@ -20,6 +21,7 @@ class RawItem:
     engagement_count: int = 0
     is_direct_mention: bool = False
     raw_data: Optional[str] = None
+    published_at: Optional[datetime] = None  # 原始发布时间
 
 
 class BaseCollector(ABC):

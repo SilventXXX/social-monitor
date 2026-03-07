@@ -6,6 +6,7 @@
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import List
 
 import httpx
@@ -84,6 +85,9 @@ class GitHubTrendingCollector(BaseCollector):
                 if language:
                     content += f"\n语言: {language}"
 
+                # GitHub Trending 没有原始发布时间，使用当前时间
+                published_at = datetime.now(timezone.utc)
+
                 items.append(
                     RawItem(
                         platform=ItemPlatform.GITHUB,
@@ -100,6 +104,7 @@ class GitHubTrendingCollector(BaseCollector):
                             "total_stars": total_stars,
                             "language": language,
                         }),
+                        published_at=published_at,
                     )
                 )
             except Exception as e:

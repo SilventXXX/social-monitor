@@ -39,6 +39,7 @@ class MonitorItem(Base):
     engagement_count: Mapped[int] = mapped_column(Integer, default=0)  # 互动数
     is_direct_mention: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否直接 @
     raw_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # 原始 JSON
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)  # 原始发布时间
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

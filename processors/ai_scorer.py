@@ -98,8 +98,18 @@ async def _score_batch(
     requirements: str,
 ) -> List[tuple[RawItem, int]]:
     """批量评分 - 方案B：标题+前100字，更快更省token"""
+    
+    # 安全提取标题（第一句或前80字）
+    def get_title(content: str) -> str:
+        if not content:
+            return ""
+        # 尝试用句号分割取第一句
+        sentences = content.split('.')
+        first = sentences[0] if sentences else content
+        return first[:80].strip()
+    
     items_text = "\n\n".join(
-        f"[{idx}] 标题:{item.content.split('.')[0][:80] if '.' in item.content else item.content[:80]} | 内容:{item.content[:100]}"
+        f"[{idx}] 标题:{get_title(item.content)} | 内容:{item.content[:100]}"
         for idx, item in enumerate(items)
     )
 
@@ -126,13 +136,20 @@ async def _score_batch(
             temperature=0.1,
         )
         text = resp.choices[0].message.content.strip()
+        
+        # 提取JSON
         if "```" in text:
-            text = text.split("```")[1].replace("json", "").strip()
+            parts = text.split("```")
+            for part in parts:
+                if "{" in part and "}" in part:
+                    text = part.replace("json", "").strip()
+                    break
+        
         data = json.loads(text)
         scores = data.get("scores", [])
 
         if len(scores) != len(items):
-            logger.warning("AI 评分数量不匹配，使用默认分 50")
+            logger.warning(f"AI评分数量不匹配: 期望{len(items)}, 实际{len(scores)}, 返回内容: {text[:200]}")
             return [(item, 50) for item in items]
 
         return [(item, max(0, min(100, int(s)))) for item, s in zip(items, scores)]
