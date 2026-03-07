@@ -26,7 +26,7 @@ def _get_client() -> Optional[AsyncOpenAI]:
         return None
     _client = AsyncOpenAI(
         api_key=settings.kimi_api_key,
-        base_url="https://api.moonshot.ai/v1",
+        base_url="https://open.bigmodel.cn/api/paas/v4",
     )
     return _client
 
@@ -52,7 +52,7 @@ async def extract_keywords(requirements: str) -> List[str]:
 
     try:
         resp = await client.chat.completions.create(
-            model="moonshot-v1-8k",
+            model="glm-4-flash",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
         )
@@ -121,7 +121,7 @@ scores 数组长度必须和内容条数一致，只返回 JSON。"""
 
     try:
         resp = await client.chat.completions.create(
-            model="moonshot-v1-8k",
+            model="glm-4-flash",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
         )

@@ -54,8 +54,8 @@ class Settings(BaseSettings):
     feishu_webhook_url: Optional[str] = Field(default=None, description="飞书机器人 Webhook 地址")
     feishu_secret: Optional[str] = Field(default=None, description="飞书签名密钥（开启签名校验时填写）")
 
-    # AI 评分 - Kimi API
-    kimi_api_key: Optional[str] = Field(default=None, description="Kimi API Key")
+    # AI 评分 - 智谱 API
+    kimi_api_key: Optional[str] = Field(default=None, description="AI API Key（智谱/Kimi）")
 
     # 调度
     poll_interval_minutes: int = Field(default=15, description="轮询间隔（分钟）")

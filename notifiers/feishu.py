@@ -38,7 +38,7 @@ def _get_ai_client() -> Optional[AsyncOpenAI]:
         return None
     _ai_client = AsyncOpenAI(
         api_key=settings.kimi_api_key,
-        base_url="https://api.moonshot.ai/v1",
+        base_url="https://open.bigmodel.cn/api/paas/v4",
     )
     return _ai_client
 
@@ -81,7 +81,7 @@ SUMMARY:
 
     try:
         resp = await client.chat.completions.create(
-            model="moonshot-v1-8k",
+            model="glm-4-flash",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
             max_tokens=400,

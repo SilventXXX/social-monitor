@@ -128,3 +128,22 @@ async def trigger_collect():
 
     await run_collect_and_notify()
     return {"ok": True}
+
+
+@app.post("/backfill")
+async def backfill(days: int = Query(default=7, ge=1, le=30)):
+    """回溯历史内容（默认最近 7 天，最多 30 天）"""
+    from collectors.hn_backfill import HNBackfillCollector
+    from processors.pipeline import process_items
+    from notifiers.feishu import FeishuNotifier
+
+    collector = HNBackfillCollector(days=days)
+    raw_items = await collector.collect()
+
+    async with async_session_maker() as session:
+        saved = await process_items(session, raw_items)
+
+    if saved:
+        await FeishuNotifier().notify(saved)
+
+    return {"ok": True, "collected": len(raw_items), "saved": len(saved)}
