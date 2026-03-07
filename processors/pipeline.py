@@ -1,16 +1,16 @@
-"""处理流水线：过滤 -> 评分 -> 去重 -> 入库"""
+"""处理流水线：过滤 -> 去重 -> AI评分 -> 入库"""
 
 import logging
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
 
 from collectors.base import RawItem
-from models.item import MonitorItem, ItemPlatform
+from models.item import MonitorItem
+from config.loader import get_requirements
 from .filter import FilterProcessor
-from .score import ScoreProcessor
 from .dedup import DedupProcessor
+from .ai_scorer import score_items_relevance
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +19,19 @@ async def process_items(
     session: AsyncSession,
     raw_items: List[RawItem],
 ) -> List[MonitorItem]:
-    """完整处理流水线：过滤、评分、去重、入库，返回新入库的项"""
+    """完整处理流水线：过滤、去重、AI评分、入库，返回新入库的项"""
     filtered = FilterProcessor.process(raw_items)
-    scored = ScoreProcessor.process(filtered)
-    new_items = await DedupProcessor.filter_existing(session, scored)
+    # 先去重，只对真正新内容调用 AI 评分（节省 API 费用）
+    pre_scored = [(item, 0) for item in filtered]
+    new_items_raw = await DedupProcessor.filter_existing(session, pre_scored)
+
+    if not new_items_raw:
+        return []
+
+    new_raw_items = [item for item, _ in new_items_raw]
+    requirements = get_requirements()
+    scored = await score_items_relevance(new_raw_items, requirements)
+    new_items = scored
 
     saved: List[MonitorItem] = []
     for raw, score in new_items:

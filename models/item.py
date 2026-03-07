@@ -13,6 +13,9 @@ class ItemPlatform(str, Enum):
 
     TWITTER = "twitter"
     REDDIT = "reddit"
+    HACKERNEWS = "hackernews"
+    GITHUB = "github"
+    RSS = "rss"
 
 
 class Base(DeclarativeBase):

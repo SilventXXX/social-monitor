@@ -52,3 +52,15 @@ def get_min_score_to_notify() -> int:
     """获取最低通知分数"""
     config = get_monitor_config()
     return config.get("min_score_to_notify", 0)
+
+
+def get_requirements() -> str:
+    """获取自然语言监控需求描述"""
+    config = get_monitor_config()
+    return config.get("requirements", "")
+
+
+def get_rss_feeds() -> list:
+    """获取用户自定义 RSS 信息源列表"""
+    config = get_monitor_config()
+    return config.get("rss_feeds", [])

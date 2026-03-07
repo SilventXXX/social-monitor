@@ -1,25 +1,33 @@
 # 外网信息监控系统 - 监控配置
-# 可在此配置关键词、用户名等，环境变量会覆盖同名配置
 
 monitor:
-  # 要监控的用户名/品牌（在各平台搜索提及）
-  usernames:
-    - "your_username"
-    - "your_brand"
+  # 用自然语言描述你的监控需求（AI 会据此对内容打相关性分）
+  # 写得越具体，过滤效果越好
+  requirements: "我做AI社交产品，关注AI帮助真人连接的社交产品动态，主要是三类 1. AI社交助理、分身类产品，比如pika AI Self、secondme这种 2. A2A的社交网络，比如Elys等 3. 通用AI Agent在社交上的尝试，比如openclaw及moltbook之类的进展"
 
-  # 关键词（任一匹配即采集）
-  keywords:
-    - "your_project"
-    - "your_product"
+  # 关键词过滤（可选，留空则采集全部内容交给 AI 评分）
+  # 建议填写，可大幅减少 AI API 调用量
+  keywords: []
+  #  - "AI agent"
+  #  - "LLM"
+  #  - "RAG"
 
-  # Hashtag（仅 X/Twitter）
-  hashtags:
-    - "yourhashtag"
+  # 要监控的用户名（在各平台搜索提及）
+  usernames: []
+
+  # Hashtag（仅 Twitter）
+  hashtags: []
 
   # Reddit 要监控的 subreddit
   subreddits:
-    - "python"
-    - "programming"
+    - "MachineLearning"
+    - "artificial"
+    - "LocalLLaMA"
 
-  # 最低重要性分数才通知（0-100，默认 0 表示全部通知）
-  min_score_to_notify: 0
+  # AI 评分达到多少才推送飞书通知（0-100，建议 60）
+  min_score_to_notify: 60
+
+  # 自定义 RSS 信息源（可选，在默认源基础上追加）
+  rss_feeds: []
+  #  - name: "我的自定义源"
+  #    url: "https://example.com/feed.xml"

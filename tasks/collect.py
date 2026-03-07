@@ -8,7 +8,9 @@ from models.database import async_session_maker
 from models.item import MonitorItem
 from collectors.twitter import TwitterCollector
 from collectors.reddit import RedditCollector
-from collectors.demo import DemoCollector
+from collectors.hackernews import HackerNewsCollector
+from collectors.github_trending import GitHubTrendingCollector
+from collectors.rss import RSSCollector
 from processors.pipeline import process_items
 from notifiers.email import EmailNotifier
 from notifiers.feishu import FeishuNotifier
@@ -22,11 +24,12 @@ async def run_collect_and_notify():
     """执行采集、处理、入库、通知的完整流程"""
     all_raw = []
 
-    # 1. 采集（演示模式使用 DemoCollector）
-    if settings.demo_mode:
-        collectors = [DemoCollector()]
-    else:
-        collectors = [TwitterCollector(), RedditCollector()]
+    # 1. 采集：RSS/HN/GitHub 无需 API Key，始终运行；Twitter/Reddit 按配置启用
+    collectors = [RSSCollector(), HackerNewsCollector(), GitHubTrendingCollector()]
+    if settings.twitter_bearer_token:
+        collectors.append(TwitterCollector())
+    if settings.reddit_client_id and settings.reddit_client_secret:
+        collectors.append(RedditCollector())
 
     for collector in collectors:
         try:

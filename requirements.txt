@@ -10,6 +10,11 @@ pyyaml>=6.0.0
 # Collectors
 tweepy>=4.14.0
 praw>=7.7.0
+beautifulsoup4>=4.12.0
+feedparser>=6.0.0
+
+# AI scoring
+openai>=1.0.0
 
 # Notifiers
 httpx>=0.26.0
