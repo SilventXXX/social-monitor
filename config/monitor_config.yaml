@@ -1,0 +1,25 @@
+# 外网信息监控系统 - 监控配置
+# 可在此配置关键词、用户名等，环境变量会覆盖同名配置
+
+monitor:
+  # 要监控的用户名/品牌（在各平台搜索提及）
+  usernames:
+    - "your_username"
+    - "your_brand"
+
+  # 关键词（任一匹配即采集）
+  keywords:
+    - "your_project"
+    - "your_product"
+
+  # Hashtag（仅 X/Twitter）
+  hashtags:
+    - "yourhashtag"
+
+  # Reddit 要监控的 subreddit
+  subreddits:
+    - "python"
+    - "programming"
+
+  # 最低重要性分数才通知（0-100，默认 0 表示全部通知）
+  min_score_to_notify: 0

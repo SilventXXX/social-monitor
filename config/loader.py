@@ -1,0 +1,54 @@
+"""加载 YAML 监控配置"""
+
+import yaml
+from pathlib import Path
+from typing import List, Optional
+
+_config_cache: Optional[dict] = None
+
+
+def get_monitor_config() -> dict:
+    """加载监控配置，优先从 YAML 读取"""
+    global _config_cache
+    if _config_cache is not None:
+        return _config_cache
+
+    config_path = Path(__file__).parent / "monitor_config.yaml"
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as f:
+            raw = yaml.safe_load(f) or {}
+    else:
+        raw = {}
+
+    _config_cache = raw.get("monitor", {})
+    return _config_cache
+
+
+def get_keywords() -> List[str]:
+    """获取监控关键词列表"""
+    config = get_monitor_config()
+    return config.get("keywords", [])
+
+
+def get_hashtags() -> List[str]:
+    """获取监控 Hashtag 列表"""
+    config = get_monitor_config()
+    return config.get("hashtags", [])
+
+
+def get_usernames() -> List[str]:
+    """获取监控用户名列表"""
+    config = get_monitor_config()
+    return config.get("usernames", [])
+
+
+def get_subreddits() -> List[str]:
+    """获取监控 subreddit 列表"""
+    config = get_monitor_config()
+    return config.get("subreddits", [])
+
+
+def get_min_score_to_notify() -> int:
+    """获取最低通知分数"""
+    config = get_monitor_config()
+    return config.get("min_score_to_notify", 0)

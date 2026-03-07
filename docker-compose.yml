@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  social-monitor:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./config:/app/config:ro
+      - monitor-data:/app/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/social_monitor.db
+
+volumes:
+  monitor-data:

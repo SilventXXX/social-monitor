@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Monitor - 外网信息监控</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #0f0f0f; color: #e0e0e0; line-height: 1.5; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    .mode-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 16px; }
+    .mode-demo { background: #3d3d00; color: #d4d400; }
+    .mode-reddit { background: #1a3d1a; color: #6fcf6f; }
+    .mode-full { background: #1a2a3d; color: #6fb3ff; }
+    .actions { margin-bottom: 20px; }
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #374151; color: #e0e0e0; margin-left: 8px; }
+    .btn-secondary:hover { background: #4b5563; }
+    .filter-bar { margin-bottom: 16px; }
+    .filter-bar select { padding: 8px 12px; border-radius: 6px; background: #1f1f1f; color: #e0e0e0; border: 1px solid #333; }
+    .item-list { list-style: none; padding: 0; margin: 0; }
+    .item { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .item.read { opacity: 0.6; }
+    .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .item-platform { font-size: 0.75rem; color: #888; text-transform: uppercase; }
+    .item-author { font-weight: 600; color: #94a3b8; }
+    .item-content { margin: 8px 0; color: #c0c0c0; font-size: 0.95rem; }
+    .item-meta { font-size: 0.8rem; color: #666; }
+    .item-meta a { color: #60a5fa; text-decoration: none; }
+    .item-meta a:hover { text-decoration: underline; }
+    .empty { text-align: center; padding: 40px; color: #666; }
+    .loading { text-align: center; padding: 20px; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Social Monitor</h1>
+    <div id="modeBadge" class="mode-badge mode-demo">加载中...</div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="triggerCollect()">立即采集</button>
+      <button class="btn btn-secondary" onclick="loadItems()">刷新列表</button>
+    </div>
+
+    <div class="filter-bar">
+      <select id="platformFilter" onchange="loadItems()">
+        <option value="">全部平台</option>
+        <option value="twitter">X / Twitter</option>
+        <option value="reddit">Reddit</option>
+      </select>
+    </div>
+
+    <div id="itemList" class="item-list">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    async function getStatus() {
+      const r = await fetch(API + '/status');
+      return r.json();
+    }
+
+    async function loadItems() {
+      const platform = document.getElementById('platformFilter').value;
+      let url = API + '/items?limit=50';
+      if (platform) url += '&platform=' + platform;
+      const r = await fetch(url);
+      const data = await r.json();
+      renderItems(data.items);
+    }
+
+    function renderItems(items) {
+      const el = document.getElementById('itemList');
+      if (!items || items.length === 0) {
+        el.innerHTML = '<div class="empty">暂无监控内容。点击「立即采集」获取数据。</div>';
+        return;
+      }
+      el.innerHTML = items.map(i => `
+        <li class="item ${i.read_at ? 'read' : ''}" data-id="${i.id}">
+          <div class="item-header">
+            <span class="item-platform">${i.platform}</span>
+            <span class="item-author">@${i.author}</span>
+          </div>
+          <div class="item-content">${escapeHtml(i.content)}</div>
+          <div class="item-meta">
+            评分 ${i.score} | 互动 ${i.engagement_count}
+            ${i.url ? ` | <a href="${escapeHtml(i.url)}" target="_blank">查看原文</a>` : ''}
+            ${!i.read_at ? ` | <a href="#" onclick="markRead(${i.id}); return false;">标记已读</a>` : ''}
+          </div>
+        </li>
+      `).join('');
+    }
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    async function markRead(id) {
+      await fetch(API + '/items/' + id + '/read', { method: 'POST' });
+      loadItems();
+    }
+
+    async function triggerCollect() {
+      const btn = document.querySelector('.btn-primary');
+      btn.disabled = true;
+      btn.textContent = '采集中...';
+      try {
+        await fetch(API + '/collect', { method: 'POST' });
+        await loadItems();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '立即采集';
+      }
+    }
+
+    function setMode(mode) {
+      const el = document.getElementById('modeBadge');
+      el.className = 'mode-badge';
+      if (mode === 'demo') {
+        el.className += ' mode-demo';
+        el.textContent = '演示模式 - 配置 API 密钥后可监控真实数据';
+      } else if (mode === 'reddit') {
+        el.className += ' mode-reddit';
+        el.textContent = 'Reddit 已配置';
+      } else {
+        el.className += ' mode-full';
+        el.textContent = '已完整配置';
+      }
+    }
+
+    async function init() {
+      try {
+        const status = await getStatus();
+        setMode(status.mode || 'demo');
+      } catch {
+        setMode('demo');
+      }
+      await loadItems();
+    }
+
+    init();
+  </script>
+</body>
+</html>
