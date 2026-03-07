@@ -120,20 +120,17 @@ def _make_sign(secret: str, timestamp: int) -> str:
 async def _build_card(item: MonitorItem) -> dict:
     """将单条监控内容构建为飞书交互式卡片（包含 AI 总结）"""
     
-    # 格式化发布时间
+    # 格式化发布时间: M月D日 HH:MM
     def format_time(dt):
         if not dt:
             return "未知"
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
-        diff = now - dt
-        if diff.days == 0:
-            if diff.seconds < 3600:
-                return f"{diff.seconds // 60}分钟前"
-            return f"{diff.seconds // 3600}小时前"
-        elif diff.days == 1:
-            return "昨天"
-        return f"{diff.days}天前"
+        # 转换为北京时间 (UTC+8)
+        from datetime import timezone, timedelta
+        beijing_tz = timezone(timedelta(hours=8))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        dt_beijing = dt.astimezone(beijing_tz)
+        return dt_beijing.strftime("%m月%d日 %H:%M")
     
     time_str = format_time(item.published_at)
     
