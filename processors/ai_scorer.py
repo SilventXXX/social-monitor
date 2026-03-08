@@ -137,6 +137,9 @@ async def _score_batch(
         )
         text = resp.choices[0].message.content.strip()
         
+        # 调试：打印原始返回
+        logger.info(f"AI评分原始返回: {text[:500]}")
+        
         # 提取JSON
         if "```" in text:
             parts = text.split("```")
