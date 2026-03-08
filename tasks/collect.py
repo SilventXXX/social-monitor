@@ -11,6 +11,7 @@ from collectors.reddit import RedditCollector
 from collectors.hackernews import HackerNewsCollector
 from collectors.github_trending import GitHubTrendingCollector
 from collectors.rss import RSSCollector
+from collectors.gmail import GmailCollector
 from processors.pipeline import process_items
 from notifiers.email import EmailNotifier
 from notifiers.feishu import FeishuNotifier
@@ -25,7 +26,7 @@ async def run_collect_and_notify():
     all_raw = []
 
     # 1. 采集：RSS/HN/GitHub 无需 API Key，始终运行；Twitter/Reddit 按配置启用
-    collectors = [RSSCollector(), HackerNewsCollector(), GitHubTrendingCollector()]
+    collectors = [RSSCollector(), HackerNewsCollector(), GitHubTrendingCollector(), GmailCollector()]
     if settings.twitter_bearer_token:
         collectors.append(TwitterCollector())
     if settings.reddit_client_id and settings.reddit_client_secret:

@@ -64,3 +64,9 @@ def get_rss_feeds() -> list:
     """获取用户自定义 RSS 信息源列表"""
     config = get_monitor_config()
     return config.get("rss_feeds", [])
+
+
+def get_gmail_sender_domains() -> List[str]:
+    """获取 Gmail 发件域名白名单"""
+    config = get_monitor_config()
+    return config.get("gmail_sender_domains", [])

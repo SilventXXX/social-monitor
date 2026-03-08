@@ -16,6 +16,7 @@ class ItemPlatform(str, Enum):
     HACKERNEWS = "hackernews"
     GITHUB = "github"
     RSS = "rss"
+    GMAIL = "gmail"
 
 
 class Base(DeclarativeBase):

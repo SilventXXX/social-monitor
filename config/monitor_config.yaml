@@ -49,6 +49,18 @@ monitor:
   # AI 评分达到多少才推送飞书通知（0-100，建议 60）
   min_score_to_notify: 60
 
+  # Gmail 订阅邮件采集 - 发件域名白名单（新订阅了哪个平台就加一行）
+  gmail_sender_domains:
+    - "beehiiv.com"
+    - "substack.com"
+    - "mailchimp.com"
+    - "convertkit.com"
+    - "buttondown.email"
+    - "ghost.io"
+    - "sendgrid.net"
+    - "mg.notion.so"
+    - "medium.com"
+
   # 自定义 RSS 信息源（可选，在默认源基础上追加）
   rss_feeds:
     # === YouTube 频道（本地RSSHub） ===
