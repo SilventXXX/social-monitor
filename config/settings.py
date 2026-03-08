@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     kimi_api_key: Optional[str] = Field(default=None, description="AI API Key（智谱/Kimi）")
 
     # 调度
-    poll_interval_minutes: int = Field(default=15, description="轮询间隔（分钟）")
+    poll_interval_minutes: int = Field(default=60, description="轮询间隔（分钟）")
 
     # 演示模式：无 API 密钥时自动启用
     @property
