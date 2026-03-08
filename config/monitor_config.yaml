@@ -4,7 +4,7 @@
 monitor:
   # 【AI 智能评分】用自然语言描述你的监控需求
   # AI 会据此对内容打相关性分，写得越具体，过滤效果越好
-  requirements: "我做AI社交产品，关注AI帮助真人连接的社交产品动态，主要是三类 1. AI社交助理、分身类产品，比如pika AI Self、secondme这种 2. A2A的社交网络，比如Elys等 3. 通用AI Agent在社交上的尝试，比如openclaw及moltbook之类的进展"
+  requirements: "监控两大方向：① AI在社交/陪伴/连接场景的应用，包括AI社交助手、数字分身、AI陪伴产品、A2A社交网络、AI帮助人与人连接的新形态，动态发现不限定具体竞品；② OpenClaw生态中有趣的C端产品动态，包括基于OpenClaw构建的社交类应用、用户增长情况、产品创新点。自动排除：纯技术教程、代码实现、学术论文、开发者工具类内容。"
 
   # 【关键词预过滤】已禁用，使用纯 AI 评分模式
   # 如需启用预过滤，取消下面注释并填写关键词
@@ -47,7 +47,7 @@ monitor:
     - "ChatGPT"
 
   # AI 评分达到多少才推送飞书通知（0-100，建议 60）
-  min_score_to_notify: 60
+  min_score_to_notify: 50
 
   # Gmail 订阅邮件采集 - 发件域名白名单（新订阅了哪个平台就加一行）
   gmail_sender_domains:

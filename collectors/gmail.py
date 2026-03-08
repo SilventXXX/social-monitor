@@ -89,6 +89,9 @@ def _fetch_gmail_items(
 
     since = datetime.now(timezone.utc) - timedelta(hours=hours_back)
     domains = get_gmail_sender_domains()
+    if not domains:
+        logger.warning("gmail_sender_domains 未配置，跳过 Gmail 采集")
+        return []
     domain_query = " OR ".join(f"from:(@{d})" for d in domains)
     query = f"({domain_query}) after:{int(since.timestamp())}"
     if extra_query:

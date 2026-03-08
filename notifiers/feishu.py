@@ -57,7 +57,7 @@ async def _generate_summary_and_title(content: str, platform: str, score: int) -
         # 无 AI 时返回默认
         default = content[:150] + "..." if len(content) > 150 else content
         # 根据分数添加必看标记
-        title_prefix = "【必看！】" if score >= 80 else ""
+        title_prefix = "【必看！】" if score >= 60 else ""
         return title_prefix + default[:50], default
     
     requirements = get_requirements()
@@ -107,7 +107,7 @@ SUMMARY: 一段连贯的总结文字，分析对AI社交产品的启发和思考
                 summary = parts[1].strip()
         
         # 根据分数添加必看标记
-        if score >= 80:
+        if score >= 60:
             title = "【必看！】" + title
         
         return title, summary
@@ -115,7 +115,7 @@ SUMMARY: 一段连贯的总结文字，分析对AI社交产品的启发和思考
         logger.exception("AI 总结生成失败: %s", e)
         # 失败时返回内容前50字作为标题，前150字作为总结
         default = content[:150] + "..." if len(content) > 150 else content
-        title_prefix = "【必看！】" if score >= 80 else ""
+        title_prefix = "【必看！】" if score >= 60 else ""
         return title_prefix + default[:50], default
 
 
@@ -149,10 +149,11 @@ async def _build_card(item: MonitorItem) -> dict:
     # 平台映射和细化
     platform_mapping = {
         "twitter": "Twitter/X",
-        "reddit": "Reddit", 
+        "reddit": "Reddit",
         "github": "GitHub",
         "hackernews": "HackerNews",
-        "rss": "RSS"
+        "rss": "RSS",
+        "gmail": "Gmail Newsletter",
     }
     platform_label = platform_mapping.get(item.platform.value, item.platform.value)
     
@@ -186,10 +187,10 @@ async def _build_card(item: MonitorItem) -> dict:
     else:
         platform_display = platform_label
     
-    # 标题颜色：直接提及用红色，高分用橙色，普通用蓝色
+    # 标题颜色：直接提及用红色，60+用橙色，50-59用蓝色
     if item.is_direct_mention:
         color = "red"
-    elif item.score >= 70:
+    elif item.score >= 60:
         color = "orange"
     else:
         color = "blue"

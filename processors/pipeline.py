@@ -50,7 +50,10 @@ async def process_items(
         if key in seen_keys:
             continue  # 跳过同一批内的重复
         seen_keys.add(key)
-        
+
+        if score < 50:
+            continue  # 低于50分直接丢弃，不入库
+
         item = MonitorItem(
             platform=raw.platform,
             external_id=raw.external_id,
