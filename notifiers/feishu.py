@@ -19,7 +19,7 @@ import httpx
 from openai import AsyncOpenAI
 
 from config.settings import settings
-from config.loader import get_min_score_to_notify, get_requirements
+from config.loader import get_min_score_to_notify, get_requirements, get_tara_context
 from models.item import MonitorItem
 from .base import BaseNotifier
 
@@ -61,12 +61,17 @@ async def _generate_summary_and_title(content: str, platform: str, score: int) -
         return title_prefix + default[:50], default
     
     requirements = get_requirements()
-    
+    tara_context = get_tara_context()
+    tara_section = f"""
+我们正在做的产品 Tara 的核心上下文：
+{tara_context}
+""" if tara_context else ""
+
     prompt = f"""你是一个信息筛选助手。请对以下监控内容生成：
 1. 一句话标题（50字以内，概括核心观点，作为消息标题）
 2. 完整总结（180-220字，一段连贯的文字，不要分点）
-
-用户监控需求：
+{tara_section}
+监控需求：
 {requirements}
 
 内容来源：{platform}
@@ -76,13 +81,12 @@ async def _generate_summary_and_title(content: str, platform: str, score: int) -
 总结要求（非常重要）：
 - 必须是一段连贯的文字，不要分点、不要加💡📌等符号
 - 先简要说明核心内容是什么
-- 然后重点分析：这对做AI社交产品有什么启发？
-- 你的思考和建议是什么？
+- 然后结合 Tara 的产品定位，分析这对 Tara 有什么具体启发或竞争信号
 - 总字数控制在180-220字
 
 请严格按以下格式返回：
 TITLE: 一句话标题（50字内）
-SUMMARY: 一段连贯的总结文字，分析对AI社交产品的启发和思考...
+SUMMARY: 一段连贯的总结文字...
 
 只返回上述格式内容，不要其他说明。"""
 
@@ -223,16 +227,6 @@ async def _build_card(item: MonitorItem) -> dict:
             "text": {
                 "tag": "lark_md",
                 "content": f"**💡 为什么值得看**\n{summary}",
-            },
-        },
-        {
-            "tag": "hr",
-        },
-        {
-            "tag": "div",
-            "text": {
-                "tag": "plain_text",
-                "content": f"原文：{item.content[:120]}..." if len(item.content) > 120 else f"原文：{item.content}",
             },
         },
     ]

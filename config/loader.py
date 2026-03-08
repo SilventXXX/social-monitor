@@ -70,3 +70,23 @@ def get_gmail_sender_domains() -> List[str]:
     """获取 Gmail 发件域名白名单"""
     config = get_monitor_config()
     return config.get("gmail_sender_domains", [])
+
+
+def get_tara_context() -> str:
+    """读取本地 Tara 产品上下文文档（不进 git）"""
+    from pathlib import Path
+    path = Path(__file__).parent.parent / "TARA_PRODUCT_CONTEXT.md"
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8")
+    # 只取核心章节：1句话定义、核心判断、当前共识，控制 token 消耗
+    sections = []
+    keep = False
+    for line in text.splitlines():
+        if line.startswith("## 1.") or line.startswith("## 2.") or line.startswith("## 17."):
+            keep = True
+        elif line.startswith("## ") and not any(line.startswith(f"## {n}.") for n in ["1", "2", "17"]):
+            keep = False
+        if keep:
+            sections.append(line)
+    return "\n".join(sections)[:2000]
