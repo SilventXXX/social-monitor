@@ -47,7 +47,7 @@ monitor:
     - "ChatGPT"
 
   # AI 评分达到多少才推送飞书通知（0-100，建议 60）
-  min_score_to_notify: 60
+  min_score_to_notify: 70
 
   # Gmail 订阅邮件采集 - 发件域名白名单（新订阅了哪个平台就加一行）
   gmail_sender_domains:

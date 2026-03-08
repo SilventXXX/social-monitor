@@ -46,49 +46,32 @@ def _get_ai_client() -> Optional[AsyncOpenAI]:
 _MAX_ITEMS_PER_NOTIFY = 10
 
 
-async def _generate_summary_and_title(content: str, platform: str, score: int) -> tuple[str, str]:
-    """使用 AI 生成一句话标题和总结
-    
-    Returns:
-        (title, summary) - 标题(50字内)和完整总结(200字内)
-    """
+def _extract_original_title(content: str) -> str:
+    """从 content 第一行提取原始标题"""
+    first_line = content.split("\n")[0].strip()
+    return first_line[:80] + "..." if len(first_line) > 80 else first_line
+
+
+async def _generate_summary(content: str, platform: str) -> str:
+    """使用 AI 生成摘要，返回 summary 字符串"""
     client = _get_ai_client()
     if not client:
-        # 无 AI 时返回默认
-        default = content[:150] + "..." if len(content) > 150 else content
-        # 根据分数添加必看标记
-        title_prefix = "【必看！】" if score >= 60 else ""
-        return title_prefix + default[:50], default
-    
-    requirements = get_requirements()
-    tara_context = get_tara_context()
-    tara_section = f"""
-我们正在做的产品 Tara 的核心上下文：
-{tara_context}
-""" if tara_context else ""
+        return content[:200] + "..." if len(content) > 200 else content
 
-    prompt = f"""你是一个资深产品分析师。请对以下监控内容生成标题和摘要。
+    tara_context = get_tara_context()
+    tara_section = f"\n我们正在做的产品 Tara 的核心上下文：\n{tara_context}\n" if tara_context else ""
+
+    prompt = f"""你是一个资深产品分析师。请对以下监控内容生成摘要。
 {tara_section}
 内容来源：{platform}
 内容：
 {content[:1000]}
 
-输出要求：
+摘要要求（200-250字，分两段）：
+第一段（130字左右）：详细描述这条内容讲了什么，包括产品形态、核心机制、用户场景、数据或融资情况等关键细节，让读者不用看原文就能完整理解。
+第二段（60-80字）：结合 Tara 的产品定位，写1条真正有价值的观察——可能是验证了某个方向、暴露了某个盲点、带来可借鉴的机制或竞争信号。不要生硬套用，只说最关键的那一点。
 
-TITLE（50字内）：
-只描述这条内容本身是什么，客观准确，不要加任何主观判断或"对Tara"之类的字眼。
-
-SUMMARY（200-250字，分两段）：
-第一段（120字左右）：详细描述这条内容讲了什么，包括产品形态、核心机制、用户场景、数据或融资情况等关键细节，让读者不用看原文就能完整理解。
-第二段（80-100字）：结合 Tara 的产品上下文，给出1-2条真正有价值的战略判断。不要生硬套用，要真正想清楚这件事和 Tara 的关联——可能是验证了某个方向、暴露了某个盲点、带来了某个可借鉴的机制，或者是一个值得警惕的竞争信号。只说最有价值的，不凑字数。
-
-格式：
-TITLE: 标题内容
-SUMMARY: 第一段内容
-
-第二段内容
-
-只返回上述格式，不要其他说明。"""
+直接输出两段文字，不要任何标签或前缀。"""
 
     try:
         resp = await client.chat.completions.create(
@@ -97,30 +80,10 @@ SUMMARY: 第一段内容
             temperature=0.3,
             max_tokens=400,
         )
-        text = resp.choices[0].message.content.strip()
-        
-        # 解析 TITLE 和 SUMMARY
-        title = "新监控内容"
-        summary = text
-        
-        if "TITLE:" in text:
-            parts = text.split("SUMMARY:", 1)
-            title_part = parts[0].replace("TITLE:", "").strip()
-            title = title_part[:50] + "..." if len(title_part) > 50 else title_part
-            if len(parts) > 1:
-                summary = parts[1].strip()
-        
-        # 根据分数添加必看标记
-        if score >= 60:
-            title = "【必看！】" + title
-        
-        return title, summary
+        return resp.choices[0].message.content.strip()
     except Exception as e:
         logger.exception("AI 总结生成失败: %s", e)
-        # 失败时返回内容前50字作为标题，前150字作为总结
-        default = content[:150] + "..." if len(content) > 150 else content
-        title_prefix = "【必看！】" if score >= 60 else ""
-        return title_prefix + default[:50], default
+        return content[:200] + "..." if len(content) > 200 else content
 
 
 def _make_sign(secret: str, timestamp: int) -> str:
@@ -199,8 +162,9 @@ async def _build_card(item: MonitorItem) -> dict:
     else:
         color = "blue"
 
-    # 生成 AI 标题和总结（传入 score 用于标题标记）
-    title, summary = await _generate_summary_and_title(item.content, platform_display, item.score)
+    # 原始标题 + AI 摘要
+    title = _extract_original_title(item.content)
+    summary = await _generate_summary(item.content, platform_display)
 
     elements = [
         {
@@ -246,8 +210,9 @@ async def _build_card(item: MonitorItem) -> dict:
             }
         )
 
-    # 标题使用 AI 生成的一句话总结（已包含【必看！】标记）
     icon = "🔥" if item.is_direct_mention else "📰"
+    if item.score >= 70:
+        title = "【必看】" + title
     return {
         "msg_type": "interactive",
         "card": {
