@@ -46,7 +46,7 @@ def _get_ai_client() -> Optional[AsyncOpenAI]:
 _MAX_ITEMS_PER_NOTIFY = 10
 
 
-async def _generate_summary_and_title(content: str, platform: str) -> tuple[str, str]:
+async def _generate_summary_and_title(content: str, platform: str, score: int) -> tuple[str, str]:
     """使用 AI 生成一句话标题和总结
     
     Returns:
@@ -56,13 +56,15 @@ async def _generate_summary_and_title(content: str, platform: str) -> tuple[str,
     if not client:
         # 无 AI 时返回默认
         default = content[:150] + "..." if len(content) > 150 else content
-        return default[:50] + "...", default
+        # 根据分数添加必看标记
+        title_prefix = "【必看！】" if score >= 80 else ""
+        return title_prefix + default[:50], default
     
     requirements = get_requirements()
     
     prompt = f"""你是一个信息筛选助手。请对以下监控内容生成：
 1. 一句话标题（50字以内，概括核心观点，作为消息标题）
-2. 完整总结（200字以内，解释为什么值得看）
+2. 完整总结（180-220字，一段连贯的文字，不要分点）
 
 用户监控需求：
 {requirements}
@@ -71,11 +73,16 @@ async def _generate_summary_and_title(content: str, platform: str) -> tuple[str,
 内容：
 {content[:1000]}
 
+总结要求（非常重要）：
+- 必须是一段连贯的文字，不要分点、不要加💡📌等符号
+- 先简要说明核心内容是什么
+- 然后重点分析：这对做AI社交产品有什么启发？
+- 你的思考和建议是什么？
+- 总字数控制在180-220字
+
 请严格按以下格式返回：
 TITLE: 一句话标题（50字内）
-SUMMARY: 
-💡 核心观点：...
-📌 为什么值得关注：...
+SUMMARY: 一段连贯的总结文字，分析对AI社交产品的启发和思考...
 
 只返回上述格式内容，不要其他说明。"""
 
@@ -99,12 +106,17 @@ SUMMARY:
             if len(parts) > 1:
                 summary = parts[1].strip()
         
+        # 根据分数添加必看标记
+        if score >= 80:
+            title = "【必看！】" + title
+        
         return title, summary
     except Exception as e:
         logger.exception("AI 总结生成失败: %s", e)
         # 失败时返回内容前50字作为标题，前150字作为总结
         default = content[:150] + "..." if len(content) > 150 else content
-        return default[:50], default
+        title_prefix = "【必看！】" if score >= 80 else ""
+        return title_prefix + default[:50], default
 
 
 def _make_sign(secret: str, timestamp: int) -> str:
@@ -182,8 +194,8 @@ async def _build_card(item: MonitorItem) -> dict:
     else:
         color = "blue"
 
-    # 生成 AI 标题和总结
-    title, summary = await _generate_summary_and_title(item.content, platform_display)
+    # 生成 AI 标题和总结（传入 score 用于标题标记）
+    title, summary = await _generate_summary_and_title(item.content, platform_display, item.score)
 
     elements = [
         {
@@ -201,13 +213,6 @@ async def _build_card(item: MonitorItem) -> dict:
                     "text": {
                         "tag": "lark_md",
                         "content": f"**时间**\n{time_str}",
-                    },
-                },
-                {
-                    "is_short": True,
-                    "text": {
-                        "tag": "lark_md",
-                        "content": f"**推荐分**\n{item.score}",
                     },
                 },
             ],
@@ -246,7 +251,7 @@ async def _build_card(item: MonitorItem) -> dict:
             }
         )
 
-    # 标题使用 AI 生成的一句话总结
+    # 标题使用 AI 生成的一句话总结（已包含【必看！】标记）
     icon = "🔥" if item.is_direct_mention else "📰"
     return {
         "msg_type": "interactive",

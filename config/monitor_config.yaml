@@ -6,22 +6,23 @@ monitor:
   # AI 会据此对内容打相关性分，写得越具体，过滤效果越好
   requirements: "我做AI社交产品，关注AI帮助真人连接的社交产品动态，主要是三类 1. AI社交助理、分身类产品，比如pika AI Self、secondme这种 2. A2A的社交网络，比如Elys等 3. 通用AI Agent在社交上的尝试，比如openclaw及moltbook之类的进展"
 
-  # 【关键词预过滤】建议填写，可大幅减少 AI API 调用量
-  # 只有包含这些关键词的内容才会进入 AI 评分流程
-  keywords:
-    - "AI分身"
-    - "digital twin"
-    - "Pika AI"
-    - "AI Self"
-    - "AI avatar"
-    - "数字孪生"
-    - "AI clone"
-    - "Elys AI"
-    - "AI陪伴"
-    - "Character.AI"
-    - "AI agent"
-    - "LLM"
-    - "RAG"
+  # 【关键词预过滤】已禁用，使用纯 AI 评分模式
+  # 如需启用预过滤，取消下面注释并填写关键词
+  keywords: []
+  # keywords:
+  #   - "AI分身"
+  #   - "digital twin"
+  #   - "Pika AI"
+  #   - "AI Self"
+  #   - "AI avatar"
+  #   - "数字孪生"
+  #   - "AI clone"
+  #   - "Elys AI"
+  #   - "AI陪伴"
+  #   - "Character.AI"
+  #   - "AI agent"
+  #   - "LLM"
+  #   - "RAG"
 
   # 要监控的用户名/品牌（在各平台搜索提及）
   usernames:
@@ -49,6 +50,21 @@ monitor:
   min_score_to_notify: 60
 
   # 自定义 RSS 信息源（可选，在默认源基础上追加）
-  rss_feeds: []
-  #  - name: "我的自定义源"
-  #    url: "https://example.com/feed.xml"
+  rss_feeds:
+    # === YouTube 频道（本地RSSHub） ===
+    - name: "YouTube-LexFridman-AI"
+      url: "http://localhost:1200/youtube/playlist/PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf"
+    - name: "YouTube-Fireship"
+      url: "http://localhost:1200/youtube/channel/UCsBjURrPoezykLs9EqgamOA"
+    # === AI从业者Blog ===
+    - name: "Blog-SimonWillison"
+      url: "https://simonwillison.net/atom/everything/"
+    - name: "Blog-LennysNewsletter"
+      url: "https://www.lennysnewsletter.com/feed"
+    # === Reddit（直接RSS，无需API） ===
+    - name: "Reddit-r/artificial"
+      url: "https://www.reddit.com/r/artificial/.rss"
+    - name: "Reddit-r/singularity"
+      url: "https://www.reddit.com/r/singularity/.rss"
+    - name: "Reddit-r/ChatGPT"
+      url: "https://www.reddit.com/r/ChatGPT/.rss"

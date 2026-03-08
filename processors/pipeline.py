@@ -4,7 +4,7 @@
 """
 
 import logging
-from typing import List
+from typing import List, Set
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,7 +43,14 @@ async def process_items(
     scored = await score_items_relevance(new_raw_items, requirements)
 
     saved: List[MonitorItem] = []
+    seen_keys: Set[tuple[str, str]] = set()  # 防止同一批内有重复
+    
     for raw, score in scored:
+        key = (raw.platform.value, raw.external_id)
+        if key in seen_keys:
+            continue  # 跳过同一批内的重复
+        seen_keys.add(key)
+        
         item = MonitorItem(
             platform=raw.platform,
             external_id=raw.external_id,

@@ -21,18 +21,27 @@ from models.item import ItemPlatform
 
 logger = logging.getLogger(__name__)
 
-# 内置默认信息源
+# 内置默认信息源 - 聚焦产品新闻和创投，避免开发者技术博客
 _DEFAULT_FEEDS = [
+    # === 科技新闻/创投（产品、融资新闻） ===
+    {"name": "TechCrunch-AI",       "url": "https://techcrunch.com/category/artificial-intelligence/feed/"},
     {"name": "TechCrunch",          "url": "https://techcrunch.com/feed/"},
+    {"name": "VentureBeat-AI",      "url": "https://venturebeat.com/category/ai/feed/"},
     {"name": "Wired",               "url": "https://www.wired.com/feed/rss"},
-    {"name": "Ars Technica",        "url": "https://feeds.arstechnica.com/arstechnica/index"},
-    {"name": "The Verge",           "url": "https://www.theverge.com/rss/index.xml"},
     {"name": "MIT Tech Review",     "url": "https://www.technologyreview.com/feed/"},
-    {"name": "VentureBeat",         "url": "https://venturebeat.com/feed/"},
-    {"name": "Dev.to",              "url": "https://dev.to/feed"},
-    {"name": "InfoQ",               "url": "https://feed.infoq.com/"},
+    # === 产品发现 ===
     {"name": "Product Hunt",        "url": "https://www.producthunt.com/feed"},
-    {"name": "Hacker News Blog",    "url": "https://hnrss.org/frontpage"},
+    # === Reddit 产品讨论（无API方案） ===
+    {"name": "Reddit-r/artificial", "url": "https://www.reddit.com/r/artificial/.rss"},
+    {"name": "Reddit-r/singularity", "url": "https://www.reddit.com/r/singularity/.rss"},
+    {"name": "Reddit-r/ChatGPT",    "url": "https://www.reddit.com/r/ChatGPT/.rss"},
+    # === Twitter（需要配置TWITTER_COOKIE才能使用） ===
+    # {"name": "Twitter-pika_labs",   "url": "http://localhost:1200/twitter/user/pika_labs"},
+    # 已移除（太技术向）
+    # - Dev.to: 主要是开发者技术文章，产品内容少
+    # - Ars Technica: 偏硬核科技，不太关注AI社交产品
+    # - The Verge: 关注消费电子，AI产品覆盖较少
+    # - InfoQ: 企业技术架构
 ]
 
 _HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; SocialMonitor/1.0)"}
