@@ -271,9 +271,9 @@ class FeishuNotifier(BaseNotifier):
                 card = await _build_card(item)
                 payloads.append(card)
 
+        failed = 0
         async with httpx.AsyncClient() as client:
             for idx, payload in enumerate(payloads):
-                # 签名校验
                 if secret:
                     ts = int(time.time())
                     payload["timestamp"] = str(ts)
@@ -283,12 +283,14 @@ class FeishuNotifier(BaseNotifier):
                     r = await client.post(webhook_url, json=payload, timeout=10.0)
                     data = r.json()
                     if data.get("code") != 0:
-                        logger.warning("飞书发送失败: %s", data)
-                        raise Exception(f"飞书API返回错误: {data}")
+                        logger.warning("飞书第 %d 条发送失败: %s", idx + 1, data)
+                        failed += 1
                     else:
-                        logger.info("飞书消息发送成功: %s", payload.get("msg_type", "unknown"))
+                        logger.info("飞书第 %d/%d 条发送成功", idx + 1, len(payloads))
                 except Exception as e:
-                    logger.exception("飞书通知失败: %s", e)
-                    raise  # 抛出异常让上层知道通知失败
+                    logger.exception("飞书第 %d 条请求异常: %s", idx + 1, e)
+                    failed += 1
 
-        logger.info("飞书通知已发送 %d 条", len(payloads))
+        logger.info("飞书通知完成：%d 条成功，%d 条失败", len(payloads) - failed, failed)
+        if failed == len(payloads):
+            raise Exception(f"飞书全部 {failed} 条均发送失败")

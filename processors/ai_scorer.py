@@ -99,22 +99,14 @@ async def _score_batch(
 ) -> List[tuple[RawItem, int]]:
     """批量评分 - 方案B：标题+前100字，更快更省token"""
     
-    # 安全提取标题（第一句或前80字）
-    def get_title(content: str) -> str:
-        if not content:
-            return ""
-        # 尝试用句号分割取第一句
-        sentences = content.split('.')
-        first = sentences[0] if sentences else content
-        return first[:80].strip()
-    
     # 内容过短（<30字）无法判断，直接给0分跳过
     short_items = {i for i, item in enumerate(items) if len(item.content.strip()) < 30}
+    valid_items = [(i, item) for i, item in enumerate(items) if i not in short_items]
 
+    # 使用连续索引 [0][1][2]，避免 AI 因非连续索引返回错误数量
     items_text = "\n\n".join(
-        f"[{idx}] {item.content[:200]}"
-        for idx, item in enumerate(items)
-        if idx not in short_items
+        f"[{seq}] {item.content[:200]}"
+        for seq, (_, item) in enumerate(valid_items)
     )
 
     prompt = f"""你是一个严格的信息筛选助手。根据用户的监控需求，对每条内容打分（0-100）。
@@ -143,7 +135,6 @@ async def _score_batch(
 只返回JSON，不要解释。"""
 
     # 全部是短内容则跳过 AI
-    valid_items = [(i, item) for i, item in enumerate(items) if i not in short_items]
     if not valid_items:
         return [(item, 0) for item in items]
 
