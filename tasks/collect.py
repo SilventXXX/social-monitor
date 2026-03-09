@@ -46,6 +46,14 @@ async def run_collect_and_notify():
         logger.info("无新内容需通知")
         return
 
+    # 显示分数分布，方便排查推送问题
+    from config.loader import get_min_score_to_notify
+    threshold = get_min_score_to_notify()
+    above = [i for i in new_items if i.score >= threshold]
+    logger.info("新入库 %d 条，其中 %d 条分数 ≥%d 将推送，分数分布: %s",
+                len(new_items), len(above), threshold,
+                sorted([i.score for i in new_items], reverse=True))
+
     # 3. 通知
     for notifier in [
         FeishuNotifier(),

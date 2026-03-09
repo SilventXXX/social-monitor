@@ -130,6 +130,35 @@ async def trigger_collect():
     return {"ok": True}
 
 
+@app.post("/test-feishu")
+async def test_feishu():
+    """发送一条测试消息到飞书，验证 Webhook 是否通"""
+    from notifiers.feishu import _make_sign
+    from config.settings import settings
+    import httpx, time
+
+    webhook_url = settings.feishu_webhook_url
+    if not webhook_url:
+        return {"ok": False, "error": "未配置 FEISHU_WEBHOOK_URL"}
+
+    payload = {
+        "msg_type": "text",
+        "content": {"text": "✅ Social Monitor 飞书推送测试成功！"},
+    }
+    if settings.feishu_secret:
+        ts = int(time.time())
+        payload["timestamp"] = str(ts)
+        payload["sign"] = _make_sign(settings.feishu_secret, ts)
+
+    async with httpx.AsyncClient() as client:
+        r = await client.post(webhook_url, json=payload, timeout=10.0)
+        data = r.json()
+
+    if data.get("code") == 0:
+        return {"ok": True, "msg": "测试消息已发送，请查看飞书群"}
+    return {"ok": False, "feishu_response": data}
+
+
 @app.post("/backfill")
 async def backfill(days: int = Query(default=7, ge=1, le=30)):
     """回溯历史内容（默认最近 7 天，最多 30 天）"""
