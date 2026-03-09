@@ -249,8 +249,11 @@ class FeishuNotifier(BaseNotifier):
         min_score = get_min_score_to_notify()
         to_notify = [i for i in items if i.score >= min_score]
         if not to_notify:
+            logger.info("没有 ≥%d 分的内容需要通知", min_score)
             return
 
+        logger.info("准备通知 %d 条内容（阈值≥%d）", len(to_notify), min_score)
+        
         webhook_url = settings.feishu_webhook_url
         if not webhook_url:
             logger.warning("未配置 FEISHU_WEBHOOK_URL，跳过飞书通知")
@@ -269,7 +272,7 @@ class FeishuNotifier(BaseNotifier):
                 payloads.append(card)
 
         async with httpx.AsyncClient() as client:
-            for payload in payloads:
+            for idx, payload in enumerate(payloads):
                 # 签名校验
                 if secret:
                     ts = int(time.time())
@@ -281,9 +284,11 @@ class FeishuNotifier(BaseNotifier):
                     data = r.json()
                     if data.get("code") != 0:
                         logger.warning("飞书发送失败: %s", data)
+                        raise Exception(f"飞书API返回错误: {data}")
                     else:
-                        logger.debug("飞书消息发送成功")
+                        logger.info("飞书消息发送成功: %s", payload.get("msg_type", "unknown"))
                 except Exception as e:
                     logger.exception("飞书通知失败: %s", e)
+                    raise  # 抛出异常让上层知道通知失败
 
         logger.info("飞书通知已发送 %d 条", len(payloads))

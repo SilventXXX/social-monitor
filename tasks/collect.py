@@ -54,7 +54,11 @@ async def run_collect_and_notify():
                 len(new_items), len(above), threshold,
                 sorted([i.score for i in new_items], reverse=True))
 
-    # 3. 通知
+    # 3. 通知（只有成功后才标记为已通知）
+    from sqlalchemy import update
+    now = datetime.now(timezone.utc)
+    notified_item_ids = set()
+
     for notifier in [
         FeishuNotifier(),
         TelegramNotifier(),
@@ -63,15 +67,19 @@ async def run_collect_and_notify():
     ]:
         try:
             await notifier.notify(new_items)
+            # 记录成功通知的项
+            for item in new_items:
+                notified_item_ids.add(item.id)
+            logger.info(f"{notifier.__class__.__name__} 通知成功，{len(new_items)} 条")
         except Exception as e:
-            logger.exception("通知失败: %s", e)
+            logger.exception(f"{notifier.__class__.__name__} 通知失败: %s", e)
 
-    # 4. 更新 notified_at
-    async with async_session_maker() as session:
-        from sqlalchemy import update
-        now = datetime.now(timezone.utc)
-        for item in new_items:
-            await session.execute(
-                update(MonitorItem).where(MonitorItem.id == item.id).values(notified_at=now)
-            )
-        await session.commit()
+    # 4. 更新 notified_at（只更新成功通知的项）
+    if notified_item_ids:
+        async with async_session_maker() as session:
+            for item_id in notified_item_ids:
+                await session.execute(
+                    update(MonitorItem).where(MonitorItem.id == item_id).values(notified_at=now)
+                )
+            await session.commit()
+            logger.info(f"已标记 {len(notified_item_ids)} 条为已通知")

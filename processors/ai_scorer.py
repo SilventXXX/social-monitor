@@ -168,7 +168,8 @@ async def _score_batch(
 
         if len(ai_scores) != len(valid_items):
             logger.warning(f"AI评分数量不匹配: 期望{len(valid_items)}, 实际{len(ai_scores)}")
-            return [(item, 0 if i in short_items else 50) for i, item in enumerate(items)]
+            # 评分失败时给 0 分，不入库，避免产生无法通知的垃圾数据
+            return [(item, 0) for i, item in enumerate(items)]
 
         # 合并短内容(0分)和AI评分结果
         score_map = {i: max(0, min(100, int(s))) for (i, _), s in zip(valid_items, ai_scores)}
