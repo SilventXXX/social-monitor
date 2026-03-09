@@ -157,14 +157,26 @@ async def _score_batch(
         data = json.loads(text)
         ai_scores = data.get("scores", [])
 
-        if len(ai_scores) != len(valid_items):
-            logger.warning(f"AI评分数量不匹配: 期望{len(valid_items)}, 实际{len(ai_scores)}")
-            # 评分失败时给 0 分，不入库，避免产生无法通知的垃圾数据
-            return [(item, 0) for i, item in enumerate(items)]
-
         # 合并短内容(0分)和AI评分结果
-        score_map = {i: max(0, min(100, int(s))) for (i, _), s in zip(valid_items, ai_scores)}
-        return [(item, score_map.get(i, 0)) for i, item in enumerate(items)]
+        # 处理 AI 返回数量不匹配的情况：用 AI 返回的分数填充，不够的给默认分50
+        final_scores = {}
+        
+        # 短内容给 0 分
+        for i in short_items:
+            final_scores[i] = 0
+        
+        # AI 评分的内容
+        for seq, (orig_idx, _) in enumerate(valid_items):
+            if seq < len(ai_scores):
+                final_scores[orig_idx] = max(0, min(100, int(ai_scores[seq])))
+            else:
+                # AI 返回分数不够，给默认分 50
+                final_scores[orig_idx] = 50
+        
+        if len(ai_scores) != len(valid_items):
+            logger.warning(f"AI评分数量不匹配: 期望{len(valid_items)}, 实际{len(ai_scores)}, 缺失的用50分填充")
+        
+        return [(item, final_scores.get(i, 50)) for i, item in enumerate(items)]
     except Exception as e:
         logger.exception("AI 评分失败: %s", e)
         return [(item, 50) for item in items]

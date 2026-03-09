@@ -83,3 +83,66 @@ async def run_collect_and_notify():
                 )
             await session.commit()
             logger.info(f"已标记 {len(notified_item_ids)} 条为已通知")
+
+    # 5. 发送执行日志报告给用户
+    await _send_execution_report(all_raw, new_items, above, threshold, notified_item_ids)
+
+
+async def _send_execution_report(all_raw, new_items, above, threshold, notified_item_ids):
+    """发送执行日志报告给用户"""
+    try:
+        import httpx
+        
+        # 构建报告内容
+        report_lines = [
+            "📊 Social Monitor 执行报告",
+            f"⏰ 时间: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC",
+            "",
+            f"📥 采集: {len(all_raw)} 条原始内容",
+            f"🆕 新入库: {len(new_items)} 条",
+        ]
+        
+        if new_items:
+            scores = sorted([i.score for i in new_items], reverse=True)
+            report_lines.extend([
+                f"📈 分数分布: {scores}",
+                f"🔔 阈值≥{threshold}: {len(above)} 条",
+            ])
+            
+            if above:
+                report_lines.append("")
+                report_lines.append("📌 高分内容预览:")
+                for item in above[:5]:
+                    preview = item.content[:50].replace('\n', ' ') + "..." if len(item.content) > 50 else item.content
+                    report_lines.append(f"  • [{item.score}分] {preview}")
+            else:
+                report_lines.append("")
+                report_lines.append("⚠️ 没有≥70分的内容，本次不推送")
+        else:
+            report_lines.append("✅ 无新内容需处理")
+        
+        if notified_item_ids:
+            report_lines.extend([
+                "",
+                f"✅ 成功通知: {len(notified_item_ids)} 条",
+            ])
+        elif above:
+            report_lines.extend([
+                "",
+                "❌ 通知失败: 请检查日志",
+            ])
+        
+        report_text = "\n".join(report_lines)
+        
+        # 发送飞书消息
+        webhook_url = settings.feishu_webhook_url
+        if webhook_url:
+            async with httpx.AsyncClient() as client:
+                payload = {
+                    "msg_type": "text",
+                    "content": {"text": report_text}
+                }
+                await client.post(webhook_url, json=payload, timeout=10.0)
+                logger.info("执行报告已发送给用户")
+    except Exception as e:
+        logger.exception(f"发送执行报告失败: {e}")
