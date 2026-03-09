@@ -31,10 +31,6 @@ _DEFAULT_FEEDS = [
     {"name": "MIT Tech Review",     "url": "https://www.technologyreview.com/feed/"},
     # === 产品发现 ===
     {"name": "Product Hunt",        "url": "https://www.producthunt.com/feed"},
-    # === Reddit 产品讨论（无API方案） ===
-    {"name": "Reddit-r/artificial", "url": "https://www.reddit.com/r/artificial/.rss"},
-    {"name": "Reddit-r/singularity", "url": "https://www.reddit.com/r/singularity/.rss"},
-    {"name": "Reddit-r/ChatGPT",    "url": "https://www.reddit.com/r/ChatGPT/.rss"},
     # === Twitter（需要配置TWITTER_COOKIE才能使用） ===
     # {"name": "Twitter-pika_labs",   "url": "http://localhost:1200/twitter/user/pika_labs"},
     # 已移除（太技术向）

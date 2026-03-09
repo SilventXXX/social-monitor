@@ -73,10 +73,3 @@ monitor:
       url: "https://simonwillison.net/atom/everything/"
     - name: "Blog-LennysNewsletter"
       url: "https://www.lennysnewsletter.com/feed"
-    # === Reddit（直接RSS，无需API） ===
-    - name: "Reddit-r/artificial"
-      url: "https://www.reddit.com/r/artificial/.rss"
-    - name: "Reddit-r/singularity"
-      url: "https://www.reddit.com/r/singularity/.rss"
-    - name: "Reddit-r/ChatGPT"
-      url: "https://www.reddit.com/r/ChatGPT/.rss"

@@ -108,9 +108,13 @@ async def _score_batch(
         first = sentences[0] if sentences else content
         return first[:80].strip()
     
+    # 内容过短（<30字）无法判断，直接给0分跳过
+    short_items = {i for i, item in enumerate(items) if len(item.content.strip()) < 30}
+
     items_text = "\n\n".join(
         f"[{idx}] {item.content[:200]}"
         for idx, item in enumerate(items)
+        if idx not in short_items
     )
 
     prompt = f"""你是一个严格的信息筛选助手。根据用户的监控需求，对每条内容打分（0-100）。
@@ -138,6 +142,11 @@ async def _score_batch(
 返回 JSON：{{"scores": [分数0, 分数1, ...]}}
 只返回JSON，不要解释。"""
 
+    # 全部是短内容则跳过 AI
+    valid_items = [(i, item) for i, item in enumerate(items) if i not in short_items]
+    if not valid_items:
+        return [(item, 0) for item in items]
+
     try:
         resp = await client.chat.completions.create(
             model="glm-4-flash",
@@ -145,26 +154,25 @@ async def _score_batch(
             temperature=0.1,
         )
         text = resp.choices[0].message.content.strip()
-        
-        # 调试：打印原始返回
         logger.info(f"AI评分原始返回: {text[:500]}")
-        
-        # 提取JSON
+
         if "```" in text:
             parts = text.split("```")
             for part in parts:
                 if "{" in part and "}" in part:
                     text = part.replace("json", "").strip()
                     break
-        
+
         data = json.loads(text)
-        scores = data.get("scores", [])
+        ai_scores = data.get("scores", [])
 
-        if len(scores) != len(items):
-            logger.warning(f"AI评分数量不匹配: 期望{len(items)}, 实际{len(scores)}, 返回内容: {text[:200]}")
-            return [(item, 50) for item in items]
+        if len(ai_scores) != len(valid_items):
+            logger.warning(f"AI评分数量不匹配: 期望{len(valid_items)}, 实际{len(ai_scores)}")
+            return [(item, 0 if i in short_items else 50) for i, item in enumerate(items)]
 
-        return [(item, max(0, min(100, int(s)))) for item, s in zip(items, scores)]
+        # 合并短内容(0分)和AI评分结果
+        score_map = {i: max(0, min(100, int(s))) for (i, _), s in zip(valid_items, ai_scores)}
+        return [(item, score_map.get(i, 0)) for i, item in enumerate(items)]
     except Exception as e:
         logger.exception("AI 评分失败: %s", e)
         return [(item, 50) for item in items]
